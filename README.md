@@ -29,4 +29,4 @@ In Visual Studio:
 
 ## Contributors
 
-* [Petr Skala](petr@petrskala.com)
+* [Petr Skala](pskala@seznam.cz)
