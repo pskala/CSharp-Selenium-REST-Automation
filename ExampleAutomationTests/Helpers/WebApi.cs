@@ -27,6 +27,9 @@ namespace mySpaceName.Helpers
             performanceOutputList = PerformanceOutputList;
             //SetTokens(settings.UserName, settings.Password, out AuthToken, out RefreshToken, out TokenType);
         }
+        /**
+         * OAuth example - transformed user and password to token what used all request under login
+         **/
         public void SetTokens(string username, string password, out string access_token, out string refresh_token, out string token_type)
         {
             try
@@ -65,10 +68,102 @@ namespace mySpaceName.Helpers
                 token_type = "";
             }
         }
+        /**
+         * send file to server as multipart/form-data
+         **/
+        public dynamic SendFileRequest(string urlPath, string pathFile, HttpStatusCode testOnStatusCode = HttpStatusCode.Accepted, string authToken = null)
+        {
+            var URL = settings.AppURL + urlPath;
+            var authorizationToken = authToken == null ? AuthToken : authToken;
+            var request = new RestRequest(Method.POST);
+            request.AddHeader("cache-control", "no-cache");
+            request.AddHeader("authorization", TokenType + " " + authorizationToken);
+            request.AddHeader("Content-Type", "multipart/form-data");
+            request.AddFile("content", pathFile);
+            var response = Execute(request, urlPath);
+            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Send file request with " + urlPath + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
+            return JsonConvert.DeserializeObject<dynamic>(response.Content);
+        }
+        /**
+         * download file from server 
+         **/
+        public void DownloadFileRequest(string urlPath, string filename, string authToken = null)
+        {
+            var URL = settings.AppURL + urlPath;
+            var authorizationToken = authToken == null ? AuthToken : authToken;
+            var request = new RestRequest(Method.GET);
+            request.AddHeader("cache-control", "no-cache");
+            request.AddHeader("authorization", TokenType + " " + authorizationToken);
+
+            Execute(request, urlPath, filename);
+        }
+        /**
+         * send GET request and return string text (json, error message, ..)
+         **/
+        public string SendGETRequestText(string urlPath, HttpStatusCode testOnStatusCode = HttpStatusCode.OK, string authToken = null)
+        {
+            IRestResponse response = GetResponse(urlPath, Method.GET, null, testOnStatusCode, authToken);
+
+            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Get request with " + urlPath + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
+
+            return response.Content;
+        }
+        /**
+         * send GET request and return JSON object
+         **/
+        public dynamic SendGETRequest(string urlPath, HttpStatusCode testOnStatusCode = HttpStatusCode.OK, string authToken = null)
+        {
+            var content = SendGETRequestText(urlPath, testOnStatusCode, authToken);
+            return JsonConvert.DeserializeObject<dynamic>(content);
+        }
+        /**
+         * send POST request and return string text (json, error message, ..)
+         **/
+        public string SendPOSTRequestText(string urlPath, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.Created, string authToken = null)
+        {
+            IRestResponse response = GetResponse(urlPath, Method.POST, RequestBody, testOnStatusCode, authToken);
+
+            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Post request with " + urlPath + " and request body " + RequestBody + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
+
+            return response.Content;
+        }
+        /**
+         * send POST request and return JSON object
+         **/
+        public dynamic SendPOSTRequest(string urlPath, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.Created, string authToken = null)
+        {
+            return JsonConvert.DeserializeObject<dynamic>(SendPOSTRequestText(urlPath, RequestBody, testOnStatusCode, authToken));
+        }
+        /**
+         * send POST request and return JSON object
+         **/
+        public dynamic SendPUTRequest(string urlPath, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.NoContent, string authToken = null)
+        {
+            IRestResponse response = GetResponse(urlPath, Method.PUT, RequestBody, testOnStatusCode, authToken);
+
+            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Put request with " + urlPath + " and request body " + RequestBody + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
+
+            return JsonConvert.DeserializeObject<dynamic>(response.Content);
+        }
+        /**
+         * send DELETE request and return JSON object
+         **/
+        public dynamic SendDELETERequest(string urlPath, HttpStatusCode testOnStatusCode = HttpStatusCode.NoContent, string authToken = null)
+        {
+            IRestResponse response = GetResponse(urlPath, Method.DELETE, null, testOnStatusCode, authToken);
+
+            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Delete request with " + urlPath + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
+
+            return JsonConvert.DeserializeObject<dynamic>(response.Content);
+        }
+
+        /**
+         * private procedures section
+         **/
         private IRestResponse GetResponse(string urlPath, RestSharp.Method method, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.OK, string authToken = null)
         {
             var authorizationToken = authToken == null ? AuthToken : authToken;
-            
+
             var request = new RestRequest(method);
             request.AddHeader("cache-control", "no-cache");
             if ((method != Method.GET) || (method != Method.DELETE))
@@ -93,7 +188,8 @@ namespace mySpaceName.Helpers
                 stopPerformance = DateTime.Now;
                 WritePerformance(startPerformance, stopPerformance, urlPath, request.Method, "DownloadFile");
                 return null;
-            } else
+            }
+            else
             {
                 response = client.Execute(request);
                 stopPerformance = DateTime.Now;
@@ -107,70 +203,6 @@ namespace mySpaceName.Helpers
             var line = settings.TestContext.TestName + SEPARATOR + method.ToString() + SEPARATOR + url + SEPARATOR + statusCode + SEPARATOR;
             line = line + start.ToString() + SEPARATOR + stop.ToString() + SEPARATOR + (stop - start) + SEPARATOR;
             performanceOutputList.Add(line);
-        }
-        public dynamic SendFile(string urlPath, string pathFile, HttpStatusCode testOnStatusCode = HttpStatusCode.Accepted, string authToken = null)
-        {
-            var URL = settings.AppURL + urlPath;
-            var authorizationToken = authToken == null ? AuthToken : authToken;
-            var request = new RestRequest(Method.POST);
-            request.AddHeader("cache-control", "no-cache");
-            request.AddHeader("authorization", TokenType + " " + authorizationToken);
-            request.AddHeader("Content-Type", "multipart/form-data");
-            request.AddFile("content", pathFile);
-            var response = Execute(request, urlPath);
-            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Send file request with " + urlPath + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
-            return JsonConvert.DeserializeObject<dynamic>(response.Content);
-        }
-        public void DownloadFile(string urlPath, string filename, string authToken = null)
-        {
-            var URL = settings.AppURL + urlPath;
-            var authorizationToken = authToken == null ? AuthToken : authToken;
-            var request = new RestRequest(Method.GET);
-            request.AddHeader("cache-control", "no-cache");
-            request.AddHeader("authorization", TokenType + " " + authorizationToken);
-
-            Execute(request, urlPath, filename);
-        }
-        public string SendGETRequestText(string urlPath, HttpStatusCode testOnStatusCode = HttpStatusCode.OK, string authToken = null)
-        {
-            IRestResponse response = GetResponse(urlPath, Method.GET, null, testOnStatusCode, authToken);
-
-            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Get request with " + urlPath + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
-
-            return response.Content;
-        }
-        public dynamic SendGETRequest(string urlPath, HttpStatusCode testOnStatusCode = HttpStatusCode.OK, string authToken = null)
-        {
-            var content = SendGETRequestText(urlPath, testOnStatusCode, authToken);
-            return JsonConvert.DeserializeObject<dynamic>(content);
-        }
-        public string SendPOSTRequestContent(string urlPath, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.Created, string authToken = null)
-        {
-            IRestResponse response = GetResponse(urlPath, Method.POST, RequestBody, testOnStatusCode, authToken);
-
-            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Post request with " + urlPath + " and request body " + RequestBody + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
-
-            return response.Content;
-        }
-        public dynamic SendPOSTRequestDynamic(string urlPath, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.Created, string authToken = null)
-        {
-            return JsonConvert.DeserializeObject<dynamic>(SendPOSTRequestContent(urlPath, RequestBody, testOnStatusCode, authToken));
-        }
-        public dynamic SendPUTRequest(string urlPath, dynamic RequestBody = null, HttpStatusCode testOnStatusCode = HttpStatusCode.NoContent, string authToken = null)
-        {
-            IRestResponse response = GetResponse(urlPath, Method.PUT, RequestBody, testOnStatusCode, authToken);
-
-            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Put request with " + urlPath + " and request body " + RequestBody + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
-
-            return JsonConvert.DeserializeObject<dynamic>(response.Content);
-        }
-        public dynamic SendDELETERequest(string urlPath, HttpStatusCode testOnStatusCode = HttpStatusCode.NoContent, string authToken = null)
-        {
-            IRestResponse response = GetResponse(urlPath, Method.DELETE, null, testOnStatusCode, authToken);
-
-            Assert.AreEqual(testOnStatusCode, response.StatusCode, "Delete request with " + urlPath + " failed! Return status code is " + response.StatusCode + " but expected " + testOnStatusCode + ". Response is " + response.Content);
-
-            return JsonConvert.DeserializeObject<dynamic>(response.Content);
         }
     }
 }

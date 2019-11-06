@@ -1,4 +1,7 @@
-﻿using Bogus;
+﻿/**
+ * help class for create data to inputs
+ **/
+using Bogus;
 using JsonDiffPatchDotNet;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -54,7 +57,6 @@ namespace mySpaceName.Helpers
         {
             return new[] {
             "Admin",
-            "Manager",
             "User"};
         }
     }

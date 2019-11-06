@@ -1,4 +1,7 @@
-﻿using System;
+﻿/**
+ * common useful selenium operations
+ **/
+using System;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 

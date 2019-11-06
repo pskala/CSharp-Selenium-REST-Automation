@@ -1,4 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿/**
+ * Common help procedures for manupulation with file
+ **/
+using Newtonsoft.Json;
 using mySpaceName.Helpers.WebDriver;
 using System;
 using System.IO;
